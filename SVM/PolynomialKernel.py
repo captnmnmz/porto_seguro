@@ -1,16 +1,22 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Nov 20 11:04:47 2017
+
+@author: bastienchevallier
+"""
+
 from numpy import *
 
-def gaussianKernel(X1, X2, sigma = 0.1):
+def PolynomialKernel(X1, X2, degree = 2, c= 1):
     m = X1.shape[0]
     K = zeros((m,X2.shape[0]))
     
     # ====================== YOUR CODE HERE =======================
     # Instructions: Calculate the Gaussian kernel (see the assignment
     #				for more details).
-    
-
     for i in range(m):
-        K[i,:] = np.exp((-(linalg.norm(X1[i,:]-X2, axis=1)**2))/(2*sigma**2))
+        K[i,:] = pow(dot(X2, X1[i,:]) + c ,degree)
     
     # =============================================================
 

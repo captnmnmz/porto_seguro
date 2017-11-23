@@ -1,51 +1,94 @@
 from numpy import *
-import matplotlib.pyplot as plt
-from sklearn.svm import SVC
 from linearKernel import linearKernel
+from sklearn.model_selection import GridSearchCV
 from pylab import scatter, show, legend, xlabel, ylabel, contour, title, plot
 import numpy as np
+import pandas as pd
+from sklearn.svm import SVC
+from sklearn.decomposition import RandomizedPCA
+from sklearn.pipeline import make_pipeline
+import matplotlib.pyplot as plt
+from sklearn.metrics import accuracy_score
+from sklearn.datasets import fetch_lfw_people
+from sklearn.cross_validation import train_test_split
+from sklearn.metrics import classification_report
 
 # # Load the dataset
 # # The first two columns contains the exam scores and the third column
 # # contains the label.
-data = loadtxt('data1.txt', delimiter=',')
+train = pd.read_csv("../../../train.csv")
+test = pd.read_csv("../../../test.csv")
 
-X = data[:, 0:2] 
-y = data[:, 2]
+print("Training set has %d rows and %d columns\n"%(train.shape[0], train.shape[1]) )
+print("Test set has %d rows and %d columns\n"%(test.shape[0], test.shape[1]))
 
-# # Plot data 
-plt.plot(X[:,0][y == 1], X[:,1][y == 1], 'r+', label="c1")
-plt.plot(X[:,0][y == 0], X[:,1][y == 0], 'bo', label="c2")
-plt.legend(['y = 1', 'y = 0'],numpoints=1)
-plt.show()
+size_training = 100
+size_testing = 100
 
-C = 1  # SVM regularization parameter
-# We calculate the linear kernel between the instances/samples
-K = linearKernel(X,X)
 
-# We create an instance of SVM and fit out data. We do not scale our
-# data since we want to plot the support vectors
-svc = SVC(C = C, kernel="precomputed")
-svc.fit(K,y)
+X = train.drop('target', axis=1).values
+y = train['target'].values
 
-# Plot the decision boundary
-u = linspace(min(X[:, 0]),max(X[:, 0]), 200)
-v = linspace(min(X[:, 1]),max(X[:, 1]), 200)
-z = zeros(shape=(len(u), len(v)))
-for i in range(len(u)):
-    for j in range(len(v)):
-        z[i, j] = svc.predict(linearKernel(array([[u[i],v[j]]]),X))
-        
-plot(X[:,0][y == 1], X[:,1][y == 1], 'r+', label="c1")
-plot(X[:,0][y == 0], X[:,1][y == 0], 'bo', label="c2")
-contour(u, v, z.T, [0])
-legend(['y = 1', 'y = 0', 'Decision boundary'],numpoints=1)
-show()
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.25, random_state=None)
 
-#Compute accuracy on the training set
-p = svc.predict(K)
-counter = 0
-for i in range(y.size):
-    if p[i] == y[i]:
-        counter += 1
-print('Train Accuracy: %f' % (counter / float(y.size) * 100.0))
+
+
+#Linear Kernel
+#linearKernel(X_train,X_train)
+#Polynomial Kernel
+#PolynomialKernel(X_train,X_train)
+#GaussianKernel
+#gaussianKernel(X_train,X_train)
+#LaplacianKernel
+#LaplacianKernel(X_train,X_train)
+
+#========================= TRAINING ==========================#
+    
+#pca = RandomizedPCA(n_components=150, whiten=True, random_state=42)
+svc = SVC(kernel='rbf', C=100., gamma = 0.001)
+#model = make_pipeline(pca, svc)
+
+print ("Shape of X_train :", X_train.shape)
+print ("Shape of X_test :", X_test.shape)
+print ("Shape of y_train :", y_train.shape)
+print ("Shape of y_test :", y_test.shape)
+
+param_grid = {'svc__C': [1., 5., 10., 50.],
+             'svc__gamma': [0.0001, 0.0005, 0.001, 0.005]}
+grid = GridSearchCV(svc, param_grid)
+print("Fit is running . . .\n")
+grid.fit(X_train, y_train)
+print(grid.best_params_)
+print("Test is running . . .\n")
+model = grid.best_estimator_
+#TODO check if this is model.predict
+y_pred = model.predict(X_test)
+
+target_names = train['target'].unique().astype(str).sort()
+print(classification_report(y_test, y_pred,target_names=target_names))
+
+print("==== ACCURACY ====")
+accuracy_score(y_test, y_pred)
+
+#C = 100.0  # SVM regularization parameter
+
+#svc_linear = SVC(C = C, kernel="linear")
+#svc_linear.fit(linearKernel(X,X),y)
+
+#svc_poly = SVC(C = C, kernel="poly")
+#svc_poly.fit(PolynomialKernel(X,X),y)
+
+#svc_sigmoid = SVC(C = C, kernel="sigmoid")
+#svc_gaussian.fit(gaussianKernel(X,X),y)
+
+#svc_Laplacian = SVC(C = C, kernel=LaplacianKernel)
+#svc_Laplacian.fit(LaplacianKernel(X,X),y)
+
+
+#=========================TEST==========================#
+#print("Test is running")
+#y_pred_rbf = svc_rbf.predict(X_test)
+#print(classification_report(y_test, y_pred, target_names=target_names))
+#
+
