@@ -21,8 +21,8 @@ import numpy as np
 import pandas as pd
 #%%
 ## Load the dataset
-data_train_pd=pd.read_csv("train.csv")
-data_test_pd=pd.read_csv("test.csv")
+data_train_pd=pd.read_csv("Documents/train.csv")
+data_test_pd=pd.read_csv("Documents/test.csv")
 
 #%%
 ###PREPROCESSING
@@ -31,8 +31,7 @@ meta = createMeta(data_train_pd)
 print('for train data : ')
 print(meta.info)
 #%%
-#PREPROCESSING TEST DATA
-###PREPROCESSING
+
 #storing useful metadata
 meta_test = createMeta(data_test_pd)
 print('for test data :')
@@ -43,6 +42,7 @@ data_train_pd=undersampling(data_train_pd)
 
 #%%
 ###DROPPING train data with too many missing values, replacing with mean for the other missing values
+###DROPPING calc data because no correlation with other features
 print('Before dropping train contains {} variables '.format(data_train_pd.shape[1]))
 data_train_pd=drop(data_train_pd,meta)
 print('After dropping train contains {} variables '.format(data_train_pd.shape[1]))
@@ -85,8 +85,8 @@ print('After creating interactions we have {} variables in test'.format(data_tes
 
 #%%
 #FEATURE SELECTION : RANDOM FOREST
-#data_train_pd, selected_vars=selectFeatures(data_train_pd)
-#data_test_pd = data_test_pd[selected_vars + ['id']]
+data_train_pd, selected_vars=selectFeatures(data_train_pd)
+data_test_pd = data_test_pd[selected_vars + ['id']]
 #%%
 # The first two columns contains the exam scores and the third column contains the label.
 # TODO NORMALISATION
@@ -110,7 +110,8 @@ X_test=scaler.transform(X_test)
 
 #%%
 ##training K FOLD
-seed=45
+#TODO understand the value of seed
+seed=7 
 kf = StratifiedKFold(n_splits=5,random_state=seed,shuffle=True)
 pred_test_full=0
 pred_valid_full=0
@@ -121,19 +122,19 @@ for train_index,test_index in kf.split(X_train,y_train):
     xtr,xvl = X_train[train_index],X_train[test_index]
     ytr,yvl = y_train[train_index],y_train[test_index]
     
-    lr = LogisticRegression(class_weight='balanced',C=0.005)
-    lr.fit(xtr, ytr)
-    pred_test = lr.predict_proba(xvl)[:,1]
+    gb = GradientBoostingClassifier(n_estimators=100, random_state=seed)
+    gb.fit(xtr, ytr)
+    pred_test = gb.predict_proba(xvl)[:,1]
     score = roc_auc_score(yvl,pred_test)
     print('roc_auc_score',score)
     cv_score.append(score)
-    pred_valid_full += lr.predict_proba(X_valid)[:,1]
-    pred_test_full += lr.predict_proba(X_test)[:,1]
+    pred_valid_full += gb.predict_proba(X_valid)
+    #pred_test_full += gb.predict_proba(X_test)
     i+=1
 
 
 y_pred_valid=pred_valid_full/5.
-y_pred=pred_test_full/5.
+#y_pred=pred_test_full/5.
 
 #%%
 #GINI
@@ -151,7 +152,7 @@ sub['target'] = np.zeros_like(test_id)
 
 p = y_pred
 sub['target']=p
-sub.to_csv('submit.csv', index=False)
+sub.to_csv('Documents/submit.csv', index=False)
 
 
 

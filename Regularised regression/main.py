@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import scipy.optimize as op
 from predict import *
 from mapFeatures import mapFeatures
-from sklearn.preprocessing import StandardScaler
+
 from computeCostreg import computeCostreg
 from computeGradreg import computeGradreg
 from sklearn.linear_model import LogisticRegression
@@ -85,25 +85,20 @@ data_test_pd=createPoly(data_test_pd, meta_test)
 print('After creating interactions we have {} variables in test'.format(data_test_pd.shape[1]))
 
 #%%
-#FEATURE SELECTION : RANDOM FOREST
-#data_train_pd, selected_vars=selectFeatures(data_train_pd)
-#data_test_pd = data_test_pd[selected_vars + ['id']]
-#%%
-# The first two columns contains the exam scores and the third column contains the label.
-# TODO NORMALISATION
-y = data_train_pd.target.values
-X_pd = data_train_pd.drop(['id','target'], axis=1)
-X = X_pd.values
-scaler=StandardScaler()
-X=scaler.fit_transform(X)
+#FEATURE SELECTION : LASSO + NORMALISATION
+test_id = data_test_pd.id.values
+
+X,y,X_test_pdselected_vars=selectFeatures(data_train_pd.drop(['id','target'], axis=1), data_train_pd.target, data_test_pd.drop(['id'], axis=1))
+data_train_pd, selected_vars=selectFeatures(data_train_pd)
+data_test_pd = data_test_pd[selected_vars + ['id']]
+
+
 #CREATE CROSS VALIDATION ENSEMBLES
 X_train, X_valid, y_train, y_valid = train_test_split(X, y, test_size=0.3, random_state=None)
 
-test_id = data_test_pd.id.values
-X_test_pd = data_test_pd.drop(['id'], axis=1)
 
-X_test = X_test_pd.values
-X_test=scaler.transform(X_test)
+
+
 
 
 

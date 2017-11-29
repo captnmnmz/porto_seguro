@@ -15,7 +15,7 @@ def selectFeatures(train):
     
     feat_labels = X_train.columns
     
-    rf = RandomForestClassifier(n_estimators=40, random_state=0, n_jobs=-1)
+    rf = RandomForestClassifier(n_estimators=1000, random_state=0, n_jobs=4)
     
     rf.fit(X_train, y_train)
     importances = rf.feature_importances_
