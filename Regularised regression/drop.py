@@ -8,9 +8,14 @@ from sklearn.preprocessing import Imputer
 def drop(train, meta):
     _train=train.copy()
     # Dropping the variables with too many missing values
-    vars_to_drop = ['ps_car_03_cat', 'ps_car_05_cat']
+    vars_to_drop = ['ps_car_03_cat', 'ps_car_05_cat',]
     _train.drop(vars_to_drop, inplace=True, axis=1)
     meta.loc[(vars_to_drop),'keep'] = False  # Updating the meta
+    
+    #dropping the calc variables
+    ps_cal = _train.columns[_train.columns.str.startswith('ps_calc')] 
+    _train = _train.drop(ps_cal,axis =1)
+    meta.loc[(ps_cal),'keep'] = False #updating the meta
     
     # Imputing with the mean or mode for other major missin features
     mean_imp = Imputer(missing_values=-1, strategy='mean', axis=0)
