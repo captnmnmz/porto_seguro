@@ -21,7 +21,8 @@ from lightgbm import LGBMClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier, ExtraTreesClassifier, AdaBoostClassifier
 from sklearn.model_selection import train_test_split
-from rgf import *     # https://github.com/fukatani/rgf_python
+
+
 
 from ensemble import Ensemble
 from createMeta import createMeta
@@ -169,6 +170,14 @@ lgb_params3['learning_rate'] = 0.02
 lgb_params3['feature_fraction'] = 0.95
 lgb_params3['bagging_freq'] = 1
 lgb_params3['seed'] = 200
+
+# XGB params
+_xgb_params = {'eta': 0.025, 'max_depth': 4, 
+          'subsample': 0.9, 'colsample_bytree': 0.7, 
+          'colsample_bylevel':0.7,
+            'min_child_weight':100,
+            'alpha':4,
+            'objective': 'binary:logistic', 'eval_metric': 'auc', 'seed': 99, 'silent': True}
            
 lgb_model = LGBMClassifier(**lgb_params)
 
@@ -176,14 +185,18 @@ lgb_model2 = LGBMClassifier(**lgb_params2)
 
 lgb_model3 = LGBMClassifier(**lgb_params3)
 
+#%%
+
+
 log_model = LogisticRegression()
 
 #%%     
 stack = Ensemble(n_splits=6,
         stacker = log_model,
-        base_models = (lgb_model, lgb_model2, lgb_model3))        
+        base_models = (lgb_model, lgb_model2, lgb_model3),
+                 xgb_params=_xgb_params)
         
-y_pred, y_valid = stack.fit_predict(train, target_train, valid, test) 
+y_pred, y_valid = stack.fit_predict(train, target_train, valid, target_valid, test) 
 
 #%%
 #GINI TEST

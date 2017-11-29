@@ -8,15 +8,16 @@ Created on Mon Nov 13 13:13:09 2017
 import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
-from multiprocessing import *
+
 from gini_comp import gini_xgb
 from feature_sel import feature_selection
 import xgboost as xgb
 
 
 # Data loading
-train = pd.read_csv('../input/train.csv')
-test = pd.read_csv('../input/test.csv')
+train = pd.read_csv('train.csv')
+test = pd.read_csv('test.csv')
+#%%
 target = train['target'].values
 test_ids= test['id'].values
 train.drop(['id','target'],axis=1,inplace=True)
@@ -38,6 +39,7 @@ watchlist = [(xgb.DMatrix(x1, y1), 'train'), (xgb.DMatrix(x2, y2), 'valid')]
 model = xgb.train(params, xgb.DMatrix(x1, y1), 5000,  watchlist, feval=gini_xgb, maximize=True, 
                   verbose_eval=100, early_stopping_rounds=70)
 
+#%%
 ### Submission
 submission = pd.DataFrame()
 submission['id'] = test_ids

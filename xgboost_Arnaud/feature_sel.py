@@ -7,7 +7,7 @@ Created on Mon Nov 13 13:13:09 2017
 """
 import pandas as pd
 import numpy as np
-from multiprocessing import *
+from multiprocessing import Pool, cpu_count
 
 data_median = 0
 data_mean = 0

@@ -8,27 +8,28 @@ import numpy as np
 from sklearn.model_selection import StratifiedKFold
 from sklearn.model_selection import cross_val_score
 
-from lightgbm import LGBMClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier, ExtraTreesClassifier, AdaBoostClassifier
-from rgf import *
+from gini_comp import gini_xgb
+import xgboost as xgb
+
+
 
 class Ensemble(object):
-    def __init__(self, n_splits, stacker, base_models):
+    def __init__(self, n_splits, stacker, base_models, xgb_params):
         self.n_splits = n_splits
         self.stacker = stacker
         self.base_models = base_models
+        self.xgb_params = xgb_params
 
-    def fit_predict(self, X, y, valid, T):
-        X = np.array(X)
-        y = np.array(y)
+    def fit_predict(self, _X, _y, valid, target_valid, T):
+        X = np.array(_X)
+        y = np.array(_y)
         T = np.array(T)
 
         folds = list(StratifiedKFold(n_splits=self.n_splits, shuffle=True, random_state=2016).split(X, y))
 
-        S_train = np.zeros((X.shape[0], len(self.base_models)))
-        S_test = np.zeros((T.shape[0], len(self.base_models)))
-        S_valid = np.zeros((valid.shape[0], len(self.base_models)))
+        S_train = np.zeros((X.shape[0], len(self.base_models)+1))
+        S_test = np.zeros((T.shape[0], len(self.base_models)+1))
+        S_valid = np.zeros((valid.shape[0], len(self.base_models)+1))
         for i, clf in enumerate(self.base_models):
 
             S_test_i = np.zeros((T.shape[0], self.n_splits))
@@ -52,7 +53,25 @@ class Ensemble(object):
                 S_valid_i[:,j] = clf.predict_proba(valid)[:,1]
             S_test[:, i] = S_test_i.mean(axis=1)
             S_valid[:,i] = S_valid_i.mean(axis=1)
+            
+            
 
+        #xgboost
+        watchlist = [(xgb.DMatrix(_X, _y), 'train'), (xgb.DMatrix(valid, target_valid), 'valid')]
+
+
+
+        print("creating XGB model")
+
+        xgb_model = xgb.train(self.xgb_params, xgb.DMatrix(_X, _y), 5000,  watchlist, feval=gini_xgb, maximize=True, verbose_eval=100, early_stopping_rounds=70)
+        y_pred = xgb_model.predict(xgb.DMatrix(_X), ntree_limit=xgb_model.best_ntree_limit)
+        S_train[:,3] = y_pred
+
+
+            
+        S_test[:,3]=xgb_model.predict(xgb.DMatrix(T.values), ntree_limit=xgb_model.best_ntree_limit)
+        S_valid[:,3]=xgb_model.predict(xgb.DMatrix(valid), ntree_limit=xgb_model.best_ntree_limit)
+        
         results = cross_val_score(self.stacker, S_train, y, cv=3, scoring='roc_auc')
         print("Stacker score: %.5f" % (results.mean()))
 
